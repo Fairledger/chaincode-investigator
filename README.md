@@ -16,8 +16,8 @@ Tracking numbers helps us judge interest. If you wish you may remove deployment 
 1. In the command prompt type:
 
 	```
-	> npm install
 	> npm install gulp -g
+	> npm install
 	> gulp
 	```
 	

@@ -20,14 +20,13 @@
     "morgan": "1.1.1",
     "serve-static": "1.9.2",
     "ws": "1.0.1",
-	"ibm-blockchain-js": "1.1.2"
+	"ibm-blockchain-js": "1.2.*"
   },
   "engines": {
     "node": "0.12.0"
   },
   "repository": {},
   "devDependencies": {
-    "gulp": "^3.9.0",
 	"gulp-sass": "^2.0.4",
 	"gulp-concat": "*",
 	"gulp-clean-css": "*",
