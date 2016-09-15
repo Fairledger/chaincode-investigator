@@ -60,34 +60,12 @@ Tracking numbers helps us judge interest. If you wish you may remove deployment 
 			],
 			"users": [
 				{
-					"username": "user_type1_fd818482a0",
-					"secret": "d5d1a2cd27",
 					"enrollId": "user_type1_fd818482a0",
 					"enrollSecret": "d5d1a2cd27"
 				},
 				{
-					"username": "user_type1_93c0c7bc9e",
-					"secret": "7fcd7a2d53",
 					"enrollId": "user_type1_93c0c7bc9e",
 					"enrollSecret": "7fcd7a2d53"
-				},
-				{
-					"username": "user_type1_3aa39ba81d",
-					"secret": "82f211728e",
-					"enrollId": "user_type1_3aa39ba81d",
-					"enrollSecret": "82f211728e"
-				},
-				{
-					"username": "user_type1_763a40ba66",
-					"secret": "711761f28f",
-					"enrollId": "user_type1_763a40ba66",
-					"enrollSecret": "711761f28f"
-				},
-				{
-					"username": "user_type1_bb6cd75403",
-					"secret": "c2f111c2cd",
-					"enrollId": "user_type1_bb6cd75403",
-					"enrollSecret": "c2f111c2cd"
 				}
 			]
 		},
@@ -142,8 +120,8 @@ You can remove them by clicking the small "x".
 You must select a cc before you are able to use the rest of the tool. 
  
 ###Network
-This panel allows you to set which peer tp run your query or invoke against and set its enrollID. 
-The SDK will have registered 1 enrollID per peer during deployment. 
+This panel allows you to set which peer tp run your query or invoke against and set its enrollId. 
+The SDK will have registered 1 enrollId per peer during deployment. 
 By default, selecting a new peer will also select its registered user. 
 
 ###Tests

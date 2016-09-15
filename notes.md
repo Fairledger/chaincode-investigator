@@ -21,4 +21,4 @@
 - [ ] create detailed tutorial
 - [x] cf tracking
 - [ ] move tests out from under a single deployed chaincode, make them either global or maybe organize them under the same github repo
-- [ ] ability to see peer and enrollID relations for all known enrollIDs
+- [ ] ability to see peer and enrollId relations for all known enrollIds

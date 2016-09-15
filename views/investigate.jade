@@ -81,15 +81,27 @@ block content
 		.stepNumberClosed 2.
 		
 	#networkPanel.subPanel.ready
-		p.hint A valid enrollID/peer has already been selected.  You may overide it from here.
+		p.hint A valid enrollId/peer has already been selected.  You may overide it from here.
 		p.hint (the sdk registered 1 user with each peer listed in the chaincode json summary)
 		p
 			span.legend Peer:
 			select(name="peer" style="margin-left:0;")#peers
-			span.hint select a peer on the blockchain
+			span.hint select a peer's hostname on the network
 		
 		p
-			span.legend User:
+			span.legend Port:
+			input(type="text" name="port" style="margin-left:0;")#portNumber
+			span.hint enter the HTTP port number
+
+		p
+			span.legend TLS:
+			select(name="tls" style="margin-left:0;")
+				option HTTP
+				option HTTPS
+			span.hint select whether TLS is required or not
+
+		p
+			span.legend Enroll ID:
 			select(name="membershipUser" style="margin-left:0;")#users
 			span.hint select an enroll ID
 	

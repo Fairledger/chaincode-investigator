@@ -1,4 +1,5 @@
-/* global formatDate, $, document, window, bag */
+/* global formatDate, $, document, window, bag:true */
+/* global build_jsonrpc_body, peer_rest_invoke, peer_rest_query*/
 var selectedPeerIndex = 0;
 var selectedCChash = '';
 var lsKey = 'cc_investigator';
@@ -47,11 +48,11 @@ $(document).ready(function(){
 	// 												jQuery Events
 	// ================================================================================================================
 	$(document).on('click', '.invokeButton', function(){							//invoke chaincode function
-		rest_invoke_peer($(this).attr('func'), $(this).prev().val());
+		invoke_peer($(this).attr('func'), $(this).prev().val());
 	});
 	
 	$(document).on('click', '.queryButton', function(){
-		rest_query_peer($(this).attr('func'), $(this).prev().val());
+		query_peer($(this).attr('func'), $(this).prev().val());
 	});
 	
 	$(document).on('click', '.queryAllButton', function(){							//query on all the things
@@ -86,14 +87,15 @@ $(document).ready(function(){
 	//peer manual selection from dropdown
 	$('#peers').change(function(){													//select correct memership user for this peer
 		selectedPeerIndex = 0;
-		for(var i in bag.ls.ccs[selectedCChash].details.peers){
+		for(var i in bag.ls.ccs[selectedCChash].details.peers){						//find selected peer
 			if(bag.ls.ccs[selectedCChash].details.peers[i].api_host + ':' + bag.ls.ccs[selectedCChash].details.peers[i].api_port == $(this).val()){
 				selectedPeerIndex = i;
 				break;
 			}
 		}
-		$('#peer').html(bag.ls.ccs[selectedCChash].details.peers[selectedPeerIndex].name);//populate status panel
+		$('#peer').html(bag.ls.ccs[selectedCChash].details.peers[selectedPeerIndex].api_host);//populate status panel
 		setTimeout(function(){$('#peer').css('background', 'initial');}, 2000);		//flashy flashy
+		build_port_tls_inputs();
 		build_user_options(bag.ls.ccs[selectedCChash].details.users);
 		console.log('Selected peer: ', bag.ls.ccs[selectedCChash].details.peers[selectedPeerIndex].name);
 	});
@@ -148,12 +150,13 @@ $(document).ready(function(){
 							network:{
 								peers:   [{
 									'api_host': 'xxx.xxx.xxx.xxx',
-									'api_port': 'xxxxx',
+									'api_port_tls': 443,
+									'api_port': 3000,
 									'id': 'xxxxxx-xxxx-xxx-xxx-xxxxxxxxxxxx_vpx',
 								}],
 								users:  [{
-									'username': 'user0_type0_xxxx',
-									'secret': 'xxxxxxxx'
+									'enrollId': 'user0_type0_xxxx',
+									'enrollSecret': 'xxxxxxxx'
 								}]
 							},
 							chaincode:{
@@ -241,29 +244,9 @@ $(document).ready(function(){
 	// ===============================================================================================================
 	// 												HTTP Functions
 	// ================================================================================================================
-	//format body
-	function build_rest_body(type, func, args){
-		showPanel($('#logPanelNav'));
-		return 	{																			//build our body up
-					'jsonrpc': '2.0',
-					'method': type,
-					'params': {
-						'type': 1,
-						'chaincodeID': {
-							'name': bag.ls.ccs[selectedCChash].details.deployed_name
-						},
-						'ctorMsg': {
-							'function': func,
-								'args': args
-						},
-						'secureContext':  $('select[name="membershipUser"]').val()			//use the user in select dropdown
-					},
-					'id': Date.now()
-				};
-	}
-	
+
 	//invoke 1 peer
-	function rest_invoke_peer(func, args, cb){
+	function invoke_peer(func, args, cb){
 		try{
 			args = try_to_parse(args);
 		}
@@ -272,27 +255,24 @@ $(document).ready(function(){
 			return false;
 		}
 		
-		var data = build_rest_body('invoke', func, args);
-		var url = 'http://' + $('select[name="peer"]').val() + '/chaincode';
+		showPanel($('#logPanelNav'));
+		var data = build_jsonrpc_body('invoke', func, args, bag.ls.ccs[selectedCChash].details.deployed_name, $('select[name="membershipUser"]').val());
+		var host = $('select[name="peer"]').val();
+		var port = $('input[name="port"]').val();
+		var tls = $('select[name="tls"]').val().toLowerCase();
+		var url = tls + '://' + host + ':' + port + '/chaincode';
+
 		recordRest('POST', url, data);
-		logger.log('invoking func', func, data);
-		
-		$.ajax({
-			method: 'POST',
-			url: url,
-			data: JSON.stringify(data),
-			contentType: 'application/json',
-			success: function(json){
-				logger.log('Success', json);
-			},
-			error: function(e){
-				logger.log('Error', e);
-			}
+		logger.log('Sending invoke func "' + func + '"', url, data);
+
+		peer_rest_invoke(host, port, tls, data, host, function(err, json){
+			if(err) logger.log('Error', err);
+			else logger.log('Success', json);
 		});
 	}
 	
 	//query 1 peer
-	function rest_query_peer(func, args, cb){
+	function query_peer(func, args, cb){
 		try{
 			args = try_to_parse(args);
 		}
@@ -301,24 +281,21 @@ $(document).ready(function(){
 			return false;
 		}
 		
-		var data = build_rest_body('query', func, args);
-		var url = 'http://' + $('select[name="peer"]').val() + '/chaincode';
+		showPanel($('#logPanelNav'));
+		var data = build_jsonrpc_body('query', func, args, bag.ls.ccs[selectedCChash].details.deployed_name, $('select[name="membershipUser"]').val());
+		var host = $('select[name="peer"]').val();
+		var port = $('input[name="port"]').val();
+		var tls = $('select[name="tls"]').val().toLowerCase();
+		var url = tls + '://' + host + ':' + port + '/chaincode';
+
 		recordRest('POST', url, data);
-		logger.log('Querying func "' + func + '"', bag.ls.ccs[selectedCChash].details.peers[selectedPeerIndex].name, data);
+		logger.log('Sending Query func "' + func + '"', url, data);
 		
-		$.ajax({
-			method: 'POST',
-			url: url,
-			data: JSON.stringify(data),
-			contentType: 'application/json',
-			success: function(json){
-				logger.log('Success - read', JSON.stringify(json));
-				if(cb) cb(null, json);
-			},
-			error: function(e){
-				logger.log('Error - read', e);
-				if(cb) cb(e, null);
-			}
+		peer_rest_query(host, port, tls, data, host, function(err, json){
+			console.log('back?');
+			if(err) logger.log('Error - read', err);
+			else logger.log('Success - read', JSON.stringify(json));
+			if(cb) cb(err, json);
 		});
 	}
 	
@@ -331,89 +308,46 @@ $(document).ready(function(){
 			logger.log('Error - Input could not be stringified', e);
 			return false;
 		}
-		var data = build_rest_body('query', func, args);														//secre context will be overwritten in loop
 
+		showPanel($('#logPanelNav'));
+		var data = build_jsonrpc_body('query', func, args, bag.ls.ccs[selectedCChash].details.deployed_name, $('select[name="membershipUser"]').val());
+		
+		//secre context will be overwritten in loop
 		for(var i in bag.ls.ccs[selectedCChash].details.peers){													//iter over all the peers
-			var url = 'http://' + bag.ls.ccs[selectedCChash].details.peers[i].api_host + ':' + bag.ls.ccs[selectedCChash].details.peers[i].api_port + '/chaincode';
+			var host = bag.ls.ccs[selectedCChash].details.peers[i].api_host;
+			var port = bag.ls.ccs[selectedCChash].details.peers[i].api_port;
+			var tls = 'http';
+			if(bag.ls.ccs[selectedCChash].details.peers[i].api_port_tls){
+				port = bag.ls.ccs[selectedCChash].details.peers[i].api_port_tls;
+				tls = 'https';
+			}
+			var url = tls + '://' + host + ':' + port + '/chaincode';
 			recordRest('POST', url, data);
 		
-			data.params.secureContext = bag.ls.ccs[selectedCChash].details.peers[i].enrollID;					//get the right user for this peer
-			logger.log('Querying func "' + func + '"', bag.ls.ccs[selectedCChash].details.peers[i].name, data);
+			data.params.secureContext = bag.ls.ccs[selectedCChash].details.peers[i].enrollId;					//get the right user for this peer
+			logger.log('Sending Query func "' + func + '"', bag.ls.ccs[selectedCChash].details.peers[i].name, data);
 
-			$.ajax({
-				method: 'POST',
-				url: url,
-				data: JSON.stringify(data),
-				peer_name: bag.ls.ccs[selectedCChash].details.peers[i].name,
-				contentType: 'application/json',
-				success: function(json){
-					logger.log('Success - read all', this.peer_name, JSON.stringify(json));
-					if(cb) cb(null, json);
-				},
-				error: function(e){
-					logger.log('Error - read all', this.peer_name, e);
-					if(cb) cb(e, null);
-				}
+
+			peer_rest_query(host, port, tls, data, bag.ls.ccs[selectedCChash].details.peers[i].name, function(err, json){
+				if(err) logger.log('Error - read all', json.id, err);
+				else logger.log('Success - read all', json.id, JSON.stringify(json));
+				if(cb) cb(err, json);
 			});
 		}
 	}
 	
 	//invoke barebones
-	function rest_invoke_barebones(){
+	function rest_invoke_barebones(cb){
 		var func = $('input[name="invoke_func_name"]').val();
 		var args = $('input[name="invoke_func_val"]').val();
-		try{
-			args = try_to_parse(args);
-		}
-		catch(e){
-			logger.log('Error - Input could not be stringified', e);
-			return false;
-		}
-		
-		var data = build_rest_body('invoke', func, args);
-		logger.log('Invoking Function "' + func + '"', data);
-		
-		$.ajax({
-			method: 'POST',
-			url: 'http://' + $('select[name="peer"]').val() + '/chaincode',
-			data: JSON.stringify(data),
-			contentType: 'application/json',
-			success: function(json){
-				logger.log('Success', json);
-			},
-			error: function(e){
-				logger.log('Error', e);
-			}
-		});
+		invoke_peer(func, args, cb);
 	}
 	
 	//invoke barebones
-	function rest_query_barebones(){
+	function rest_query_barebones(cb){
 		var func = $('input[name="query_func_name"]').val();
 		var args = $('input[name="query_func_val"]').val();
-		try{
-			args = try_to_parse(args);
-		}
-		catch(e){
-			logger.log('Error - Input could not be stringified', e);
-			return false;
-		}
-		
-		var data = build_rest_body('query', func, args);
-		logger.log('Querying Function "' + func + '"', data);
-
-		$.ajax({
-			method: 'POST',
-			url: 'http://' + $('select[name="peer"]').val() + '/chaincode',
-			data: JSON.stringify(data),
-			contentType: 'application/json',
-			success: function(json){
-				logger.log('Success', json);
-			},
-			error: function(e){
-				logger.log('Error', e);
-			}
-		});
+		query_peer(func, args, cb);
 	}
 	
 	//send cc to sdk
@@ -554,9 +488,10 @@ $(document).ready(function(){
 			});
 			var html = '';
 			for(var i in peers){
-				html += '<option value="' + peers[i].api_host + ':' + peers[i].api_port + '">' + peers[i].name + '</option>';
+				html += '<option value="' + peers[i].api_host + '">' + peers[i].api_host + '</option>';
 			}
 			$('#peers').html(html);
+			build_port_tls_inputs();
 		}
 	}
 	
@@ -565,11 +500,27 @@ $(document).ready(function(){
 		if(users){
 			for(var i in users){
 				var selected = '';
-				if(bag.ls.ccs[selectedCChash].details.peers[selectedPeerIndex].enrollID == users[i].username) selected= 'selected="selected"';
-				html += '<option ' + selected + '>' + users[i].username + '</option>';
+				if(bag.ls.ccs[selectedCChash].details.peers[selectedPeerIndex].enrollId == users[i].enrollId) selected= 'selected="selected"';
+				html += '<option ' + selected + '>' + users[i].enrollId + '</option>';
 			}
 		}
 		$('#users').html(html);
+	}
+
+	function build_port_tls_inputs(){
+		var port = bag.ls.ccs[selectedCChash].details.peers[selectedPeerIndex].api_port;
+		var tls = false;
+		if(bag.ls.ccs[selectedCChash].details.peers[selectedPeerIndex].api_port_tls){
+			port = bag.ls.ccs[selectedCChash].details.peers[selectedPeerIndex].api_port_tls;
+			tls = true;
+		}
+		$('#portNumber').val(port);
+		if(tls){
+			$('select[name="tls"]').val('HTTPS');
+		}
+		else{
+			$('select[name="tls"]').val('HTTP');
+		}
 	}
 	
 	function toggle_panel(me){															//open/close the panel for this nav
